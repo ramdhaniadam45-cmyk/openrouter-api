@@ -1,4 +1,11 @@
 export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
 
   if (req.method === "GET") {
     return res.status(200).json({
@@ -8,9 +15,20 @@ export default async function handler(req, res) {
   }
 
   try {
-
     const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-    const { message } = req.body;
+    const { message } = req.body || {};
+
+    if (!OPENROUTER_API_KEY) {
+      return res.status(500).json({
+        error: "Missing OPENROUTER_API_KEY"
+      });
+    }
+
+    if (!message) {
+      return res.status(400).json({
+        error: "Missing message"
+      });
+    }
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -23,7 +41,7 @@ export default async function handler(req, res) {
         messages: [
           {
             role: "system",
-            content: "You convert video scenes into extremely detailed cinematic prompts."
+            content: "You convert scene descriptions into extremely detailed cinematic AI prompts while preserving the original visual facts exactly."
           },
           {
             role: "user",
@@ -34,14 +52,10 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-
-    res.status(200).json(data);
-
+    return res.status(200).json(data);
   } catch (error) {
-
-    res.status(500).json({
+    return res.status(500).json({
       error: error.message
     });
-
   }
 }
